@@ -55,8 +55,16 @@ An intelligent, role-based platform designed to match emergency blood requests w
    GEMINI_API_KEY="your_gemini_api_key_here"
    ```
 
-4. **Database Setup:**
-   Ensure your PostgreSQL instance is running. Then execute:
+4. **Database Setup (via Docker):**
+   Ensure Docker Desktop is running on your machine, then start the PostgreSQL container using the provided docker-compose file:
+```bash
+# Run PostgreSQL in Docker
+docker run --name postgres-db -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bloodmatch -p 5432:5432 -d postgres:15
+
+# Check if it's running
+docker ps
+   ```
+   Wait a few seconds for the database to start, then execute the following commands to apply the schema and seed the initial data:
    ```bash
    npx prisma migrate dev --name init
    npx prisma db seed

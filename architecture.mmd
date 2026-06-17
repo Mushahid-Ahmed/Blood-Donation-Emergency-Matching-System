@@ -1,0 +1,50 @@
+graph TD
+    subgraph Users
+        A[Attendant]
+        D[Donor]
+        V[Verifier]
+        C[Coordinator]
+        AD[Admin]
+    end
+
+    subgraph "Frontend Layer (Next.js Client)"
+        UI[React / shadcn UI]
+        AuthClient[NextAuth Session Provider]
+    end
+
+    subgraph "Backend Layer (Next.js Server)"
+        API[API Routes / Server Actions]
+        AuthServer[NextAuth Auth Provider]
+        MatchEngine[Matching Engine Algorithm]
+        AIWrapper[AI Integration Service]
+    end
+
+    subgraph "Data Layer"
+        ORM[Prisma ORM]
+        DB[(PostgreSQL Database)]
+    end
+
+    subgraph "External Services"
+        Gemini[Google Gemini AI]
+    end
+
+    A -.->|Submits Emergency Request| UI
+    D -.->|Receives Notification & Consents| UI
+    V -.->|Verifies Request Legitimacy| UI
+    C -.->|Manages Fulfillment Lifecycle| UI
+    AD -.->|Configures System Rules| UI
+
+    UI <--> AuthClient
+    AuthClient <--> AuthServer
+    UI <-->|HTTP/REST| API
+
+    API <--> AuthServer
+    API <--> MatchEngine
+    API <--> AIWrapper
+    
+    API <--> ORM
+    MatchEngine <--> ORM
+    
+    AIWrapper <-->|Urgency / Risk Scoring| Gemini
+    
+    ORM <-->|Read/Write| DB

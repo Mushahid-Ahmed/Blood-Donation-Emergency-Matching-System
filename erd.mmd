@@ -1,0 +1,80 @@
+erDiagram
+    User {
+        String id PK
+        String name
+        String email
+        String password
+        Role role
+    }
+
+    DonorProfile {
+        String id PK
+        String userId FK
+        BloodGroup bloodGroup
+        String city
+        Boolean isEligible
+        DateTime lastDonationDate
+    }
+
+    BloodRequest {
+        String id PK
+        String attendantId FK
+        String verifiedById FK
+        BloodGroup bloodGroup
+        Int unitsNeeded
+        String hospitalName
+        UrgencyLevel urgency
+        RequestStatus status
+    }
+
+    DonorMatch {
+        String id PK
+        String requestId FK
+        String donorId FK
+        Int matchScore
+        ConsentStatus consentStatus
+        FulfillmentStatus fulfillmentStatus
+    }
+
+    DonationRecord {
+        String id PK
+        String donorId FK
+        String requestId FK
+        String matchId FK
+        Int units
+        DateTime donatedAt
+    }
+
+    Notification {
+        String id PK
+        String userId FK
+        NotificationType type
+        String body
+    }
+
+    AuditLog {
+        String id PK
+        String actorId FK
+        String action
+        String targetType
+    }
+
+    SystemConfig {
+        String id PK
+        String key
+        String value
+    }
+
+    User ||--o| DonorProfile : "has (if role is DONOR)"
+    User ||--o{ BloodRequest : "submits (as Attendant)"
+    User ||--o{ BloodRequest : "verifies (as Verifier)"
+    User ||--o{ Notification : "receives"
+    User ||--o{ AuditLog : "performs action"
+    
+    DonorProfile ||--o{ DonorMatch : "matched to"
+    DonorProfile ||--o{ DonationRecord : "donates"
+    
+    BloodRequest ||--o{ DonorMatch : "generates matches"
+    BloodRequest ||--o{ DonationRecord : "fulfilled via"
+    
+    DonorMatch ||--o| DonationRecord : "results in"
