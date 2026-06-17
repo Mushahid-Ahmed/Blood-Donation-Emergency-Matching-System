@@ -2,7 +2,7 @@
 
 An intelligent, role-based platform designed to match emergency blood requests with eligible donors in real-time, reducing the delay in critical situations.
 
-## 🚀 Features
+##  Features
 
 ### Role-Based Access Control
 - **Attendant (Patient's family/friend):** Can submit emergency blood requests and track fulfillment status.
@@ -17,7 +17,7 @@ An intelligent, role-based platform designed to match emergency blood requests w
 - **Privacy-First Consent System:** Protects donor and attendant contact information until mutual consent is established.
 - **AI Integration:** Uses AI to classify request urgency and predict donor no-show risks to assist coordinators.
 
-## 🏗️ Architecture
+##  Architecture
 
 - **Frontend:** Next.js 14 (App Router), React, Tailwind CSS, shadcn/ui.
 - **Backend:** Next.js API Routes (Serverless functions).
@@ -26,7 +26,7 @@ An intelligent, role-based platform designed to match emergency blood requests w
 - **AI Service:** Google Gemini AI integrated via `@google/generative-ai`.
 - **State Management:** Zustand (for client-side state) & React Server Components.
 
-## ⚙️ Environment Setup
+##  Environment Setup
 
 1. **Clone the repository:**
    ```bash
@@ -69,7 +69,7 @@ An intelligent, role-based platform designed to match emergency blood requests w
    ```
    Access the application at `http://localhost:3000`.
 
-## 🔐 Demo Credentials
+##  Demo Credentials
 
 Use the following credentials to test different roles (password for all is `password123` unless otherwise stated):
 
@@ -81,7 +81,7 @@ Use the following credentials to test different roles (password for all is `pass
 | **Verifier** | verifier@example.com | password123 |
 | **Coordinator** | coordinator@example.com | password123 |
 
-## 🤖 AI Usage Declaration
+##  AI Usage Declaration
 
 This application utilizes Artificial Intelligence (Google Gemini) in non-critical decision support roles:
 1. **Urgency Classification:** AI analyzes the request description and outputs a suggested urgency level (Critical, Urgent, Standard) to assist Verifiers.
@@ -89,7 +89,7 @@ This application utilizes Artificial Intelligence (Google Gemini) in non-critica
 
 **Important:** AI outputs are treated strictly as *suggestions*. Final decisions (verifying requests, calling donors, confirming fulfillment) are always made by human Verifiers and Coordinators.
 
-## 🔒 Security & Privacy Basics
+##  Security & Privacy Basics
 
 - **No Exposed Secrets:** All environment variables are kept strictly on the server side.
 - **Role Verification:** Both middleware and API routes perform strict role-checking before authorizing actions.
