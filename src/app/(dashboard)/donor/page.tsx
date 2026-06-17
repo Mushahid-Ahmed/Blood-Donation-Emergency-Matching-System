@@ -274,7 +274,7 @@ export default function DonorDashboard() {
                 </div>
 
                 <Link 
-                  href="/donor/requests"
+                  href={`/donor/requests${request.donorMatches?.length > 0 ? `?matchId=${request.donorMatches[0].id}` : ''}`}
                   className="w-full text-center bg-red-50 hover:bg-red-100 text-red-600 font-bold py-2 rounded-lg text-xs transition-colors"
                 >
                   View Consent Request

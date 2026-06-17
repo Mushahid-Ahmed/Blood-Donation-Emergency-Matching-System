@@ -160,6 +160,19 @@ export async function GET(req: Request) {
             phone: true,
           },
         },
+        // Only include donorMatches relevant to the user if they are a donor
+        ...(session.user.role === Role.DONOR && {
+          donorMatches: {
+            where: {
+              donor: {
+                userId: session.user.id,
+              },
+            },
+            select: {
+              id: true,
+            },
+          },
+        }),
       },
       orderBy: {
         createdAt: 'desc',
