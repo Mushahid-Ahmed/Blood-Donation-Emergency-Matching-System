@@ -1,0 +1,252 @@
+// Blood Donation Emergency Matching System — Database Schema
+// Prisma ORM with PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────────
+
+enum Role {
+  DONOR
+  ATTENDANT
+  VERIFIER
+  COORDINATOR
+  ADMIN
+}
+
+enum BloodGroup {
+  A_POS
+  A_NEG
+  B_POS
+  B_NEG
+  AB_POS
+  AB_NEG
+  O_POS
+  O_NEG
+}
+
+enum UrgencyLevel {
+  CRITICAL
+  URGENT
+  STANDARD
+}
+
+enum RequestStatus {
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+  ACTIVE
+  FULFILLED
+  EXPIRED
+}
+
+enum ConsentStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum FulfillmentStatus {
+  NOTIFIED
+  CONTACTED
+  COMMITTED
+  DONATED
+  NO_SHOW
+  CANCELLED
+}
+
+enum NotificationType {
+  CONSENT_REQUEST
+  REQUEST_VERIFIED
+  REQUEST_REJECTED
+  REQUEST_FULFILLED
+  REQUEST_EXPIRED
+  MATCH_ACCEPTED
+  MATCH_DECLINED
+  GENERAL
+}
+
+// ─── Models ─────────────────────────────────────────────────────────────────────
+
+/// Every person with an account, regardless of role
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String   // bcrypt hashed
+  phone     String?
+  role      Role
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  donorProfile      DonorProfile?
+  bloodRequests     BloodRequest[]   @relation("AttendantRequests")
+  verifiedRequests  BloodRequest[]   @relation("VerifierRequests")
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  configUpdates     SystemConfig[]
+
+  @@map("users")
+}
+
+/// Extra donor-specific information. One-to-one with User (DONOR role only)
+model DonorProfile {
+  id               String     @id @default(cuid())
+  userId           String     @unique
+  bloodGroup       BloodGroup
+  city             String
+  area             String
+  isAvailable      Boolean    @default(true)
+  lastDonationDate DateTime?
+  isEligible       Boolean    @default(true) // Computed from lastDonationDate + cooldown
+  totalDonations   Int        @default(0)
+  notes            String?
+
+  // Relations
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  donorMatches     DonorMatch[]
+  donationRecords  DonationRecord[]
+
+  @@map("donor_profiles")
+}
+
+/// Each emergency blood request submitted by a patient attendant
+model BloodRequest {
+  id              String        @id @default(cuid())
+  attendantId     String
+  bloodGroup      BloodGroup
+  unitsNeeded     Int
+  unitsReceived   Int           @default(0)
+  hospitalName    String
+  hospitalCity    String
+  hospitalArea    String
+  urgency         UrgencyLevel
+  description     String
+  contactName     String
+  contactPhone    String
+  status          RequestStatus @default(PENDING_VERIFICATION)
+
+  // AI fields (optional, never final)
+  aiUrgencyLabel  String?
+
+  // Verification fields
+  verifiedById    String?
+  verifiedAt      DateTime?
+  rejectionReason String?
+
+  // Expiry
+  expiresAt       DateTime?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  attendant       User           @relation("AttendantRequests", fields: [attendantId], references: [id])
+  verifiedBy      User?          @relation("VerifierRequests", fields: [verifiedById], references: [id])
+  donorMatches    DonorMatch[]
+  donationRecords DonationRecord[]
+
+  @@map("blood_requests")
+}
+
+/// Each record linking one donor to one request (matching + consent + fulfillment)
+model DonorMatch {
+  id                String            @id @default(cuid())
+  requestId         String
+  donorId           String
+  matchScore        Int               @default(0)
+  consentStatus     ConsentStatus     @default(PENDING)
+  consentAt         DateTime?
+  fulfillmentStatus FulfillmentStatus @default(NOTIFIED)
+  contactRevealedAt DateTime?
+  coordinatorNotes  String?
+
+  // AI field (optional)
+  noShowRiskScore   Float?
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  request           BloodRequest     @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  donor             DonorProfile     @relation(fields: [donorId], references: [id])
+  donationRecord    DonationRecord?
+
+  @@unique([requestId, donorId]) // A donor can only be matched once per request
+  @@map("donor_matches")
+}
+
+/// Permanent record of a completed donation
+model DonationRecord {
+  id        String   @id @default(cuid())
+  donorId   String
+  requestId String
+  matchId   String   @unique
+  donatedAt DateTime @default(now())
+  units     Int
+  hospital  String
+  notes     String?
+
+  // Relations
+  donor     DonorProfile @relation(fields: [donorId], references: [id])
+  request   BloodRequest @relation(fields: [requestId], references: [id])
+  match     DonorMatch   @relation(fields: [matchId], references: [id])
+
+  @@map("donation_records")
+}
+
+/// In-app notification records (replaces real SMS/push for MVP)
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  body        String
+  referenceId String?          // ID of related request or match
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  // Relations
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+/// Audit log for sensitive actions
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String   // e.g. VERIFIED_REQUEST, REJECTED_REQUEST, CONTACT_REVEALED
+  targetId   String
+  targetType String   // e.g. BloodRequest, DonorMatch
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  actor      User     @relation(fields: [actorId], references: [id])
+
+  @@map("audit_logs")
+}
+
+/// Key-value store for admin-configurable system rules
+model SystemConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String
+  updatedById String
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  updatedBy   User     @relation(fields: [updatedById], references: [id])
+
+  @@map("system_config")
+}
